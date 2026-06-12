@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: atoms
+      POSTGRES_PASSWORD: atoms
+      POSTGRES_DB: atoms_demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: atoms
+      MINIO_ROOT_PASSWORD: atoms123456
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  backend:
+    build:
+      context: ../backend
+    environment:
+      APP_NAME: "Atoms Demo API"
+      API_SECRET_KEY: "local-dev-secret"
+      LLM_PROVIDER: "mock"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  frontend:
+    build:
+      context: ../frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  minio_data:
