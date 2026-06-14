@@ -1,11 +1,21 @@
+from app.core.config import settings
+
 try:
     from celery import Celery
-except ImportError:  # Celery is optional in the lightweight MVP skeleton.
+except ImportError:  # Celery optional; API still imports this module safely.
     Celery = None
 
 
-celery_app = Celery("atoms_demo") if Celery else None
-
-if celery_app:
-    celery_app.conf.broker_url = "redis://redis:6379/0"
-    celery_app.conf.result_backend = "redis://redis:6379/1"
+if Celery:
+    celery_app = Celery(
+        "atoms_demo",
+        broker=settings.celery_broker_url,
+        backend=settings.celery_result_backend,
+        include=["app.workers.tasks"],
+    )
+    celery_app.conf.task_track_started = True
+    celery_app.conf.task_serializer = "json"
+    celery_app.conf.result_serializer = "json"
+    celery_app.conf.accept_content = ["json"]
+else:  # pragma: no cover
+    celery_app = None

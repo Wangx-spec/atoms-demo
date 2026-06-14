@@ -1,0 +1,6 @@
+apiVersion: v2
+name: atoms-demo
+description: Helm chart for the Atoms Demo AI creation platform (backend, frontend, worker + datastores).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

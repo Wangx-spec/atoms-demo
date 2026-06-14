@@ -22,10 +22,18 @@ services:
       MINIO_ROOT_USER: atoms
       MINIO_ROOT_PASSWORD: atoms123456
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9100:9000"
+      - "9101:9001"
     volumes:
       - minio_data:/data
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
 
   backend:
     build:
@@ -33,22 +41,68 @@ services:
     environment:
       APP_NAME: "Atoms Demo API"
       API_SECRET_KEY: "local-dev-secret"
-      LLM_PROVIDER: "mock"
+      DATABASE_URL: "postgresql+asyncpg://atoms:atoms@postgres:5432/atoms_demo"
+      LLM_PROVIDER: "qwen"
+      REDIS_URL: "redis://redis:6379/0"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_PUBLIC_ENDPOINT: "localhost:9100"
+      MINIO_REGION: "us-east-1"
+      QDRANT_URL: "http://qdrant:6333"
+      IMAGE_PROVIDER: "qwen"        # set to qwen for real Tongyi Wanxiang
+      MUSIC_PROVIDER: "mock"        # set to suno / musicgen for real audio
+      QWEN_API_KEY: "sk-fde0a4026e4d4d0496bad0c1a04c92c9"
+      QWEN_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      QWEN_MODEL: "qwen-plus"
+      QWEN_IMAGE_MODEL: "wanx2.1-t2i-turbo"
+      EMBEDDING_PROVIDER: "qwen"
+      MUSICGEN_BASE_URL: ""
     ports:
       - "8000:8000"
     depends_on:
       - postgres
       - redis
       - minio
+      - qdrant
+
+  worker:
+    build:
+      context: ../backend
+    command: celery -A app.workers.celery_app worker -l info
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://atoms:atoms@postgres:5432/atoms_demo"
+      LLM_PROVIDER: "qwen"
+      REDIS_URL: "redis://redis:6379/0"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_PUBLIC_ENDPOINT: "localhost:9100"
+      MINIO_REGION: "us-east-1"
+      QDRANT_URL: "http://qdrant:6333"
+      IMAGE_PROVIDER: "qwen"        # set to qwen for real Tongyi Wanxiang
+      MUSIC_PROVIDER: "mock"        # set to suno / musicgen for real audio
+      QWEN_API_KEY: "sk-fde0a4026e4d4d0496bad0c1a04c92c9"
+      QWEN_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      QWEN_MODEL: "qwen-plus"
+      QWEN_IMAGE_MODEL: "wanx2.1-t2i-turbo"
+      EMBEDDING_PROVIDER: "qwen"
+      MUSICGEN_BASE_URL: ""
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - qdrant
 
   frontend:
     build:
       context: ../frontend
     ports:
-      - "5173:5173"
+      - "5173:80"
     depends_on:
       - backend
 
 volumes:
   postgres_data:
   minio_data:
+  qdrant_data:

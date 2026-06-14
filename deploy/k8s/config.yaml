@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atoms-config
+  namespace: atoms
+data:
+  LLM_PROVIDER: "deepseek"
+  DATABASE_URL: "postgresql+asyncpg://atoms:atoms@postgres:5432/atoms_demo"
+  REDIS_URL: "redis://redis:6379/0"
+  CELERY_BROKER_URL: "redis://redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+  MINIO_ENDPOINT: "minio:9000"
+  QDRANT_URL: "http://qdrant:6333"
+---
+# Replace these placeholders with real secrets (kubectl create secret / sealed-secrets / vault).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: atoms-secrets
+  namespace: atoms
+type: Opaque
+stringData:
+  API_SECRET_KEY: "replace-me"
+  DEEPSEEK_API_KEY: ""
+  MINIO_ACCESS_KEY: "atoms"
+  MINIO_SECRET_KEY: "atoms123456"

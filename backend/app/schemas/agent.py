@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -9,10 +10,21 @@ class CreateSessionRequest(BaseModel):
     title: str | None = None
 
 
+class UpdateSessionRequest(BaseModel):
+    title: str
+
+
 class AgentSessionResponse(BaseModel):
     id: UUID
     title: str
     messages: list[AgentMessage]
+
+
+class AgentSessionSummary(BaseModel):
+    id: UUID
+    title: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class SendMessageRequest(BaseModel):

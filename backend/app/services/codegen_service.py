@@ -1,8 +1,49 @@
 from app.schemas.apps import GeneratedCodePayload
+from app.services.llm_service import LLMError, MockLLMProvider, get_llm_provider
+
+CODEGEN_SYSTEM = (
+    "你是一名资深前端工程师。根据用户需求生成一个独立的单页应用。"
+    "只返回一个 JSON 对象，包含三个字段：html、css、js。"
+    "html 不要包含 <html>/<head>/<body>/<style>/<script> 标签，只写 body 内部结构；"
+    "css 写完整样式；js 写交互逻辑（不使用外部依赖）。"
+)
+CODEGEN_SCHEMA = '{"html": "string", "css": "string", "js": "string"}'
 
 
 class CodegenService:
-    async def generate_app(self, prompt: str) -> GeneratedCodePayload:
+    async def generate_app(
+        self,
+        prompt: str,
+        analysis: str | None = None,
+        structure: str | None = None,
+    ) -> GeneratedCodePayload:
+        provider = get_llm_provider()
+        if not isinstance(provider, MockLLMProvider):
+            try:
+                user_prompt = self._build_prompt(prompt, analysis, structure)
+                data = await provider.generate_json(
+                    user_prompt, schema_hint=CODEGEN_SCHEMA, system=CODEGEN_SYSTEM
+                )
+                html = (data.get("html") or "").strip()
+                if html:
+                    return GeneratedCodePayload(
+                        html=html,
+                        css=(data.get("css") or "").strip(),
+                        js=(data.get("js") or "").strip(),
+                    )
+            except (LLMError, ValueError, KeyError):
+                pass  # fall back to the deterministic mock template below
+        return self._mock_app(prompt)
+
+    def _build_prompt(self, prompt: str, analysis: str | None, structure: str | None) -> str:
+        parts = [f"用户需求：{prompt}"]
+        if analysis:
+            parts.append(f"需求分析：{analysis}")
+        if structure:
+            parts.append(f"页面结构规划：{structure}")
+        return "\n".join(parts)
+
+    def _mock_app(self, prompt: str) -> GeneratedCodePayload:
         title = prompt.strip()[:48] or "AI Generated App"
         return GeneratedCodePayload(
             html=f"""

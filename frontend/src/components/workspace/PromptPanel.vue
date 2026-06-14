@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { AgentEvent } from '../../types'
+
 defineProps<{
   generating: boolean
   streamText: string
+  events: AgentEvent[]
 }>()
 
 const prompt = defineModel<string>('prompt', { required: true })
@@ -9,6 +12,16 @@ const prompt = defineModel<string>('prompt', { required: true })
 defineEmits<{
   generate: []
 }>()
+
+const labels: Record<string, string> = {
+  analysis_started: '分析需求',
+  analysis_completed: '需求分析完成',
+  structure_planned: '结构规划完成',
+  code_generating: '生成代码',
+  reviewing: '代码审查',
+  completed: '生成完成',
+  error: '生成失败',
+}
 </script>
 
 <template>
@@ -29,7 +42,16 @@ defineEmits<{
 
     <section class="timeline">
       <h2>生成过程</h2>
-      <pre>{{ streamText || '等待开始' }}</pre>
+      <ul v-if="events.length" class="event-list">
+        <li v-for="(event, index) in events" :key="index" :class="['event-item', event.type]">
+          <span class="event-dot" />
+          <div>
+            <strong>{{ labels[event.type] || event.type }}</strong>
+            <p v-if="event.message">{{ event.message }}</p>
+          </div>
+        </li>
+      </ul>
+      <pre v-else>{{ streamText || '等待开始' }}</pre>
     </section>
   </aside>
 </template>
